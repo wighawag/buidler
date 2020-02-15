@@ -83,7 +83,7 @@ jobs:
         with:
           node-version: 10
       - name: print prefix
-          run: npm -g prefix    
+        run: npm -g prefix    
       - uses: actions/checkout@v2
 
       - name: Get npm cache directory
