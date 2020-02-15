@@ -79,11 +79,11 @@ jobs:
     name: Test on Windows with Node 10
     runs-on: windows-latest
     steps:
-      - name: print prefix
-        run: npm -g prefix
       - uses: actions/setup-node@v1
         with:
           node-version: 10
+      - name: print prefix
+          run: npm -g prefix    
       - uses: actions/checkout@v2
 
       - name: Get npm cache directory
