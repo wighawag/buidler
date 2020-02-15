@@ -81,9 +81,7 @@ jobs:
     steps:
       - uses: actions/setup-node@v1
         with:
-          node-version: 10
-      - name: print prefix
-        run: npm -g prefix    
+          node-version: 10    
       - uses: actions/checkout@v2
 
       - name: Get npm cache directory
@@ -104,7 +102,7 @@ jobs:
       - name: Install node-gyp-cache
         run: |
           npm install -g node-gyp-cache
-          npm config set node_gyp node-gyp-cache
+          npm config set node_gyp C:\npm\prefix\bin\node-gyp-cache
       - name: Install
         run: npm install
       - name: run install script
