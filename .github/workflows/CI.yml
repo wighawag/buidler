@@ -81,7 +81,11 @@ jobs:
     steps:
       - uses: actions/setup-node@v1
         with:
-          node-version: 10    
+          node-version: 10
+      - name: where
+        run: |
+          where npm
+          where node-gyp
       - uses: actions/checkout@v2
 
       - name: Get npm cache directory
@@ -102,7 +106,6 @@ jobs:
       - name: Install node-gyp-cache
         run: |
           npm install -g node-gyp-cache
-          where node-gyp
           npm install -g node-gyp
           dir C:\npm\prefix\node_modules
           npm config set node_gyp C:\npm\prefix\node_modules\node-gyp-cache\dist\cli.js
