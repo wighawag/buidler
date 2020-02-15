@@ -102,6 +102,7 @@ jobs:
       - name: Install node-gyp-cache
         run: |
           npm install -g node-gyp-cache
+          where node-gyp
           npm install -g node-gyp
           dir C:\npm\prefix\node_modules
           npm config set node_gyp C:\npm\prefix\node_modules\node-gyp-cache\dist\cli.js
