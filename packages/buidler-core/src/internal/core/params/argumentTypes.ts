@@ -29,11 +29,37 @@ export interface ArgumentType<T> {
    * Check if argument value is of type <T>. Optional method.
    *
    * @param argName {string} argument's name - used for context in case of error.
-   * @param value {any} argument's value to validate.
+   * @param argumentValue - value to be validated
+   * @param isVariadic {boolean} if true, value is an array of items of this.type
    *
    * @throws BDLR301 if value is not of type <t>
    */
-  validate?(argName: string, value: any): void;
+  validate?(argName: string, argumentValue: any, isVariadic?: boolean): void;
+}
+
+/**
+ * is valid if value fulfills a validator.
+ * Value to test may be either a single item, or variadic (multiple) items of the same type
+ *
+ * @param value - the data to be tested
+ * @param validator - the test function
+ * @param isVariadic - wether the value is a single item, or comprised of multiple items
+ * @return isValid {boolean}
+ * @private
+ */
+function _isValidValueOrArrayOfValues(
+  value: any,
+  validator: (item: any) => boolean,
+  isVariadic?: boolean
+): boolean {
+  const data: any[] = isVariadic ? value : [value];
+  try {
+    // isValid if all items in data[] are valid
+    return data.every(validator);
+  } catch (error) {
+    // on error, we just assume invalid data
+    return false;
+  }
 }
 
 /**
@@ -49,16 +75,22 @@ export const string: ArgumentType<string> = {
    *
    * @param argName {string} argument's name - used for context in case of error.
    * @param value {any} argument's value to validate.
+   * @param isVariadic - if true, value is an array of items to be type validated each
    *
    * @throws BDLR301 if value is not of type "string"
    */
-  validate: (argName: string, value: any): void => {
-    const type = "string";
-    if (typeof value !== type) {
+  validate: (argName: string, value: any, isVariadic?: boolean): void => {
+    const isValid = _isValidValueOrArrayOfValues(
+      value,
+      item => typeof item === "string",
+      isVariadic
+    );
+
+    if (!isValid) {
       throw new BuidlerError(ERRORS.ARGUMENTS.INVALID_VALUE_FOR_TYPE, {
         value,
         name: argName,
-        type
+        type: string.name
       });
     }
   }
@@ -91,16 +123,22 @@ export const boolean: ArgumentType<boolean> = {
    *
    * @param argName {string} argument's name - used for context in case of error.
    * @param value {any} argument's value to validate.
+   * @param isVariadic - if true, value is an array of items to be type validated each
    *
    * @throws BDLR301 if value is not of type "boolean"
    */
-  validate: (argName: string, value: any): void => {
-    const type = "boolean";
-    if (typeof value !== type) {
+  validate: (argName: string, value: any, isVariadic?: boolean): void => {
+    const isValid = _isValidValueOrArrayOfValues(
+      value,
+      item => typeof item === "boolean",
+      isVariadic
+    );
+
+    if (!isValid) {
       throw new BuidlerError(ERRORS.ARGUMENTS.INVALID_VALUE_FOR_TYPE, {
         value,
         name: argName,
-        type
+        type: boolean.name
       });
     }
   }
@@ -135,11 +173,17 @@ export const int: ArgumentType<number> = {
    *
    * @param argName {string} argument's name - used for context in case of error.
    * @param value {any} argument's value to validate.
+   * @param isVariadic - if true, value is an array of items to be type validated each
    *
    * @throws BDLR301 if value is not of type "int"
    */
-  validate: (argName: string, value: any): void => {
-    if (!Number.isInteger(value)) {
+  validate: (argName: string, value: any, isVariadic?: boolean): void => {
+    const isValid = _isValidValueOrArrayOfValues(
+      value,
+      Number.isInteger,
+      isVariadic
+    );
+    if (!isValid) {
       throw new BuidlerError(ERRORS.ARGUMENTS.INVALID_VALUE_FOR_TYPE, {
         value,
         name: argName,
@@ -179,12 +223,18 @@ export const float: ArgumentType<number> = {
    *
    * @param argName {string} argument's name - used for context in case of error.
    * @param value {any} argument's value to validate.
+   * @param isVariadic - if true, value is an array of items to be type validated each
    *
    * @throws BDLR301 if value is not of type "number"
    */
-  validate: (argName: string, value: any): void => {
-    const isNumber = typeof value === "number" && !isNaN(value);
-    if (!isNumber) {
+  validate: (argName: string, value: any, isVariadic?: boolean): void => {
+    const isValid = _isValidValueOrArrayOfValues(
+      value,
+      item => typeof item === "number" && !isNaN(item),
+      isVariadic
+    );
+
+    if (!isValid) {
       throw new BuidlerError(ERRORS.ARGUMENTS.INVALID_VALUE_FOR_TYPE, {
         value,
         name: argName,
@@ -230,11 +280,27 @@ export const inputFile: ArgumentType<string> = {
    *
    * @param argName {string} argument's name - used for context in case of error.
    * @param value {any} argument's value to validate.
+   * @param isVariadic - if true, value is an array of items to be type validated each
    *
    * @throws BDLR301 if value is not of type "inputFile"
    */
-  validate: (argName: string, value: any): void => {
-    inputFile.parse(argName, value);
+  validate: (argName: string, value: any, isVariadic?: boolean): void => {
+    const isValid = _isValidValueOrArrayOfValues(
+      value,
+      item => {
+        // is valid if it can be parsed (will  throw otherwise)
+        inputFile.parse(argName, item);
+        return true;
+      },
+      isVariadic
+    );
+    if (!isValid) {
+      throw new BuidlerError(ERRORS.ARGUMENTS.INVALID_VALUE_FOR_TYPE, {
+        value,
+        name: argName,
+        type: inputFile.name
+      });
+    }
   }
 };
 
@@ -261,17 +327,25 @@ export const json: ArgumentType<any> = {
    *
    * @param argName {string} argument's name - used for context in case of error.
    * @param value {any} argument's value to validate.
+   * @param isVariadic - if true, value is an array of items to be type validated each
    *
    * @throws BDLR301 if value is not of type "json"
    */
-  validate: (argName: string, value: any): void => {
-    const valueTypeString = Object.prototype.toString.call(value);
+  validate: (argName: string, value: any, isVariadic?: boolean): void => {
+    const isJsonValue = (item: any) => {
+      const valueTypeString = Object.prototype.toString.call(item);
+      return (
+        valueTypeString === "[object Object]" ||
+        valueTypeString === "[object Array]"
+      );
+    };
 
-    const isJsonValue =
-      valueTypeString === "[object Object]" ||
-      valueTypeString === "[object Array]";
-
-    if (!isJsonValue) {
+    const isValid = _isValidValueOrArrayOfValues(
+      value,
+      isJsonValue,
+      isVariadic
+    );
+    if (!isValid) {
       throw new BuidlerError(ERRORS.ARGUMENTS.INVALID_VALUE_FOR_TYPE, {
         value,
         name: argName,
