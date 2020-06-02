@@ -161,7 +161,7 @@ module.exports = [
     name: "buidler-deploy",
     author: "Ronan Sandford",
     authorUrl: "https://github.com/wighawag",
-    version: "0.4.0",
+    version: "0.4.1",
     url: "https://github.com/wighawag/buidler-deploy/tree/master",
     description: "Buidler plugin for Deployments",
     tags: ["Deployment", "Testing"]
