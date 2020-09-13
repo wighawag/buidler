@@ -9,9 +9,12 @@ import path from "path";
 import semver from "semver";
 import util from "util";
 
-import { EthereumProvider, ProjectPaths } from "../../../types";
+import {
+  BoundExperimentalBuidlerEVMMessageTraceHook,
+  EthereumProvider,
+  ProjectPaths,
+} from "../../../types";
 import { SOLC_INPUT_FILENAME, SOLC_OUTPUT_FILENAME } from "../../constants";
-import { getUserConfigPath } from "../../core/project-structure";
 import { CompilerInput, CompilerOutput } from "../stack-traces/compiler-types";
 import { SolidityError } from "../stack-traces/solidity-errors";
 import { FIRST_SOLC_VERSION_SUPPORTED } from "../stack-traces/solidityTracer";
@@ -28,7 +31,7 @@ import { EvmModule } from "./modules/evm";
 import { ModulesLogger } from "./modules/logger";
 import { NetModule } from "./modules/net";
 import { Web3Module } from "./modules/web3";
-import { BuidlerNode, GenesisAccount, SolidityTracerOptions } from "./node";
+import { BuidlerNode, GenesisAccount } from "./node";
 
 const log = debug("buidler:core:buidler-evm:provider");
 
@@ -65,10 +68,10 @@ export class BuidlerEVMProvider extends EventEmitter
     private readonly _paths?: ProjectPaths,
     private readonly _loggingEnabled = false,
     private readonly _allowUnlimitedContractSize = false,
-    private readonly _initialDate?: Date
+    private readonly _initialDate?: Date,
+    private readonly _experimentalBuidlerEVMMessageTraceHooks: BoundExperimentalBuidlerEVMMessageTraceHook[] = []
   ) {
     super();
-    const config = getUserConfigPath();
   }
 
   public async send(method: string, params: any[] = []): Promise<any> {
@@ -288,7 +291,8 @@ export class BuidlerEVMProvider extends EventEmitter
       node,
       this._throwOnTransactionFailures,
       this._throwOnCallFailures,
-      this._loggingEnabled ? this._logger : undefined
+      this._loggingEnabled ? this._logger : undefined,
+      this._experimentalBuidlerEVMMessageTraceHooks
     );
 
     this._netModule = new NetModule(common);
