@@ -3,27 +3,33 @@ import { assert } from "chai";
 import { Compiler } from "../../../../src/internal/solidity/compiler";
 import { CompilerDownloader } from "../../../../src/internal/solidity/compiler/downloader";
 import { SolcOptimizerConfig } from "../../../../src/types";
-import { useTmpDir } from "../../../helpers/fs";
+import { getLocalCompilerVersion } from "../../../helpers/compiler";
 
-const solcVersion = "0.6.6";
+class MockedDownloader extends CompilerDownloader {
+  public wasCalled = false;
+
+  public async getDownloadedCompilerPath(version: string): Promise<string> {
+    this.wasCalled = true;
+    return require.resolve("solc/soljson.js");
+  }
+}
 
 describe("Compiler", () => {
-  useTmpDir("compiler-execution");
-
-  let downloader: CompilerDownloader;
+  let downloader: MockedDownloader;
   let optimizerConfig: SolcOptimizerConfig;
-  let solcJsPath: string;
 
-  before(function () {
+  before(() => {
+    downloader = new MockedDownloader(
+      __dirname,
+      getLocalCompilerVersion(),
+      async () => {
+        throw new Error("This shouldn't be called");
+      }
+    );
     optimizerConfig = {
       runs: 200,
       enabled: false,
     };
-  });
-
-  beforeEach(async function () {
-    downloader = new CompilerDownloader(this.tmpDir);
-    solcJsPath = await downloader.getDownloadedCompilerPath(solcVersion);
   });
 
   it("Should compile contracts correctly", async () => {
@@ -32,7 +38,7 @@ describe("Compiler", () => {
       sources: {
         "A.sol": {
           content: `
-pragma solidity ^${solcVersion};
+pragma solidity ^${getLocalCompilerVersion()};
 contract A {}
 `,
         },
@@ -52,7 +58,11 @@ contract A {}
       },
     };
 
-    const compiler = new Compiler(solcJsPath);
+    const compiler = new Compiler(
+      getLocalCompilerVersion(),
+      __dirname,
+      downloader
+    );
 
     compiler
       .compile(input)
@@ -69,7 +79,6 @@ contract A {}
       })
       .catch((err) => {
         console.log(err);
-        assert.fail(err);
       });
   });
 
@@ -96,10 +105,40 @@ contract A {}
       },
     };
 
-    const compiler = new Compiler(solcJsPath);
+    const compiler = new Compiler(
+      getLocalCompilerVersion(),
+      __dirname,
+      downloader
+    );
 
     const output = await compiler.compile(input);
     assert.isDefined(output.errors);
     assert.isNotEmpty(output.errors);
+  });
+
+  describe("Compiler version selection", () => {
+    it("Shouldn't use the downloader if the local version is used", async () => {
+      const compiler = new Compiler(
+        getLocalCompilerVersion(),
+        __dirname,
+        downloader
+      );
+
+      await compiler.getSolc();
+
+      assert.isFalse(downloader.wasCalled);
+
+      await compiler.getSolc();
+
+      assert.isFalse(downloader.wasCalled);
+    });
+
+    it("Should call the downloader otherwise", async () => {
+      const compiler = new Compiler("0.5.0", __dirname, downloader);
+
+      await compiler.getSolc();
+
+      assert.isTrue(downloader.wasCalled);
+    });
   });
 });

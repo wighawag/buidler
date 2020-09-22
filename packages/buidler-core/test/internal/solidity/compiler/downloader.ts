@@ -8,6 +8,7 @@ import {
   CompilerDownloader,
   CompilersList,
 } from "../../../../src/internal/solidity/compiler/downloader";
+import { getLocalCompilerVersion } from "../../../helpers/compiler";
 import { expectBuidlerErrorAsync } from "../../../helpers/errors";
 import { useTmpDir } from "../../../helpers/fs";
 
@@ -16,7 +17,7 @@ import { useTmpDir } from "../../../helpers/fs";
 // particular, it doesn't download unnecessary files.
 //
 // To make it easier to test, CompilerDownloader exposes helper methods with
-// internal logic and they are tested individually here.
+// internal logic and their are tested individually here.
 
 describe("Compiler downloader", function () {
   let localCompilerBuild: CompilerBuild;
@@ -37,6 +38,12 @@ describe("Compiler downloader", function () {
       ],
     };
 
+    assert.equal(
+      localCompilerBuild.version,
+      getLocalCompilerVersion(),
+      `The installed version doesn't match the CompilerBuild used for testing. Please update it in ${__filename}.`
+    );
+
     mockCompilerList = {
       builds: [localCompilerBuild],
       releases: {
@@ -48,9 +55,13 @@ describe("Compiler downloader", function () {
 
   describe("Downloaded compiler verification", function () {
     it("Shouldn't do anything if the compiler is fine", async function () {
-      const downloader = new CompilerDownloader(this.tmpDir, async () => {
-        throw new Error("This shouldn't be called");
-      });
+      const downloader = new CompilerDownloader(
+        this.tmpDir,
+        getLocalCompilerVersion(),
+        async () => {
+          throw new Error("This shouldn't be called");
+        }
+      );
       const compilerBin = require.resolve("solc/soljson.js");
       await downloader.verifyCompiler(localCompilerBuild, compilerBin);
     });
@@ -60,9 +71,13 @@ describe("Compiler downloader", function () {
       const corruptCompilerBin = path.join(compilersDir, "asd");
       await fsExtra.createFile(corruptCompilerBin);
 
-      const downloader = new CompilerDownloader(compilersDir, async () => {
-        throw new Error("Expected");
-      });
+      const downloader = new CompilerDownloader(
+        compilersDir,
+        getLocalCompilerVersion(),
+        async () => {
+          throw new Error("Expected");
+        }
+      );
 
       await expectBuidlerErrorAsync(
         () => downloader.verifyCompiler(localCompilerBuild, corruptCompilerBin),
@@ -84,6 +99,7 @@ describe("Compiler downloader", function () {
 
       const downloader = new CompilerDownloader(
         compilersDir,
+        getLocalCompilerVersion(),
         async (url, compilerPath) => {
           urlUsed = url;
           pathUsed = compilerPath;
@@ -102,6 +118,7 @@ describe("Compiler downloader", function () {
 
       const downloader = new CompilerDownloader(
         compilersDir,
+        getLocalCompilerVersion(),
         async (url, compilerPath) => {
           throw new Error("Expected");
         }
@@ -124,6 +141,7 @@ describe("Compiler downloader", function () {
 
       const downloader = new CompilerDownloader(
         compilersDir,
+        getLocalCompilerVersion(),
         async (url, compilerPath) => {
           urlUsed = url;
           pathUsed = compilerPath;
@@ -139,6 +157,7 @@ describe("Compiler downloader", function () {
     it("Should throw the right error if the download fails", async function () {
       const downloader = new CompilerDownloader(
         this.tmpDir,
+        getLocalCompilerVersion(),
         async (url, compilerPath) => {
           throw new Error("Expected");
         }
@@ -156,16 +175,24 @@ describe("Compiler downloader", function () {
       const compilersDir = this.tmpDir;
       await fsExtra.createFile(path.join(compilersDir, "list.json"));
 
-      const downloader = new CompilerDownloader(compilersDir, async () => {
-        throw new Error("This shouldn't be called");
-      });
+      const downloader = new CompilerDownloader(
+        compilersDir,
+        getLocalCompilerVersion(),
+        async () => {
+          throw new Error("This shouldn't be called");
+        }
+      );
       assert.isTrue(await downloader.compilersListExists());
     });
 
     it("should return false if it doesn't", async function () {
-      const downloader = new CompilerDownloader(this.tmpDir, async () => {
-        throw new Error("This shouldn't be called");
-      });
+      const downloader = new CompilerDownloader(
+        this.tmpDir,
+        getLocalCompilerVersion(),
+        async () => {
+          throw new Error("This shouldn't be called");
+        }
+      );
       assert.isFalse(await downloader.compilersListExists());
     });
   });
@@ -180,10 +207,14 @@ describe("Compiler downloader", function () {
 
       downloadCalled = false;
 
-      mockDownloader = new CompilerDownloader(compilersDir, async () => {
-        downloadCalled = true;
-        await saveMockCompilersList();
-      });
+      mockDownloader = new CompilerDownloader(
+        compilersDir,
+        getLocalCompilerVersion(),
+        async () => {
+          downloadCalled = true;
+          await saveMockCompilersList();
+        }
+      );
     });
 
     async function saveMockCompilersList() {
@@ -279,11 +310,15 @@ describe("Compiler downloader", function () {
         mockCompilerList
       );
 
-      mockDownloader = new CompilerDownloader(compilersDir, async () => {
-        downloadCalled = true;
-        // Just create an empty file
-        await fsExtra.createFile(downloadedPath);
-      });
+      mockDownloader = new CompilerDownloader(
+        compilersDir,
+        getLocalCompilerVersion(),
+        async () => {
+          downloadCalled = true;
+          // Just create an empty file
+          await fsExtra.createFile(downloadedPath);
+        }
+      );
     });
 
     describe("If the compiler already existed", function () {

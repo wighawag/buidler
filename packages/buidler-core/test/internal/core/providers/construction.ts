@@ -3,14 +3,15 @@ import Common from "ethereumjs-common";
 
 import { DEFAULT_GAS_MULTIPLIER } from "../../../../../buidler-truffle5/src/constants";
 import { ERRORS } from "../../../../src/internal/core/errors-list";
-import { BackwardsCompatibilityProviderAdapter } from "../../../../src/internal/core/providers/backwards-compatibility";
 import {
-  applyProviderWrappers,
   createProvider,
   isHDAccountsConfig,
+  wrapEthereumProvider,
 } from "../../../../src/internal/core/providers/construction";
 import { GANACHE_GAS_MULTIPLIER } from "../../../../src/internal/core/providers/gas-providers";
+import { HttpProvider } from "../../../../src/internal/core/providers/http";
 import {
+  createChainIdGetter,
   numberToRpcQuantity,
   rpcQuantityToNumber,
 } from "../../../../src/internal/core/providers/provider-utils";
@@ -30,19 +31,17 @@ describe("Base provider creation", () => {
   it("Should create a valid HTTP provider and wrap it", () => {
     const provider = createProvider("net", { url: "http://localhost:8545" });
 
-    assert.instanceOf(provider, BackwardsCompatibilityProviderAdapter);
+    assert.instanceOf(provider, HttpProvider);
   });
 });
 
 describe("Base providers wrapping", () => {
   let mockedProvider: MockedProvider;
 
-  const CHAIN_ID = 1337;
-
   beforeEach(() => {
     mockedProvider = new MockedProvider();
     mockedProvider.setReturnValue("web3_clientVersion", "Not ganache");
-    mockedProvider.setReturnValue("net_version", `${CHAIN_ID}`);
+    mockedProvider.setReturnValue("net_version", "1337");
     mockedProvider.setReturnValue("eth_getBlockByNumber", {
       gasLimit: numberToRpcQuantity(8000000),
     });
@@ -53,7 +52,7 @@ describe("Base providers wrapping", () => {
 
   describe("Accounts wrapping", () => {
     it("Should wrap with a list of private keys as accounts", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         accounts: [
           "0x5ca14ebaee5e4a48b5341d9225f856115be72df55c7621b73fb0b6a1fdefcf24",
           "0x4e24948ea2bbd95ccd2bac641aadf36acd7e7cc011b1186a83dfe8db6cc7b1ae",
@@ -62,7 +61,7 @@ describe("Base providers wrapping", () => {
         url: "",
       });
 
-      const accounts = await provider.request({ method: "eth_accounts" });
+      const accounts = await provider.send("eth_accounts");
 
       assert.deepEqual(accounts, [
         "0x04397ae3f38106cebdf03f963074ecfc23d509d9",
@@ -72,7 +71,7 @@ describe("Base providers wrapping", () => {
     });
 
     it("Should wrap with an HD wallet provider", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         accounts: {
           mnemonic:
             "hurdle method ceiling design federal record unfair cloud end midnight corn oval",
@@ -82,7 +81,7 @@ describe("Base providers wrapping", () => {
         url: "",
       });
 
-      const accounts = await provider.request({ method: "eth_accounts" });
+      const accounts = await provider.send("eth_accounts");
 
       assert.deepEqual(accounts, [
         "0xd26a6f43b0df5c539778e08feec29908ea83a1c1",
@@ -91,14 +90,11 @@ describe("Base providers wrapping", () => {
     });
 
     it("Shouldn't wrap with an accounts-managing provider if not necessary", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
       });
 
-      await provider.request({
-        method: "eth_accounts",
-        params: ["param1", "param2"],
-      });
+      await provider.send("eth_accounts", ["param1", "param2"]);
       const params = mockedProvider.getLatestParams("eth_accounts");
       assert.deepEqual(params, ["param1", "param2"]);
     });
@@ -113,34 +109,36 @@ describe("Base providers wrapping", () => {
         numberToRpcQuantity(123)
       );
 
+      const getChainId = createChainIdGetter(mockedProvider);
+      const chainId = await getChainId();
       common = Common.forCustomChain(
         "mainnet",
         {
-          chainId: CHAIN_ID,
-          networkId: CHAIN_ID,
+          chainId,
+          networkId: chainId,
         },
         "petersburg"
       );
     });
 
     it("Should wrap with a fixed sender param", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
         from: "0xa2b6816c50d49101901d93f5302a3a57e0a1281b",
       });
 
-      await provider.request({ method: "eth_sendTransaction", params: [{}] });
+      await provider.send("eth_sendTransaction", [{}]);
 
       const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
       assert.equal(tx.from, "0xa2b6816c50d49101901d93f5302a3a57e0a1281b");
     });
 
     it("Should wrap without a fixed sender param, using the default one", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
       });
 
-      await provider.request({ method: "eth_sendTransaction", params: [{}] });
+      await provider.send("eth_sendTransaction", [{}]);
       const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
       assert.equal(tx.from, "0x04397ae3f38106cebdf03f963074ecfc23d509d9");
     });
@@ -159,28 +157,22 @@ describe("Base providers wrapping", () => {
     });
 
     it("Should wrap with an auto gas provider if 'auto' is used", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
         gas: "auto",
       });
 
-      await provider.request({
-        method: "eth_sendTransaction",
-        params: [{ from: "0x0" }],
-      });
+      await provider.send("eth_sendTransaction", [{ from: "0x0" }]);
       const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
       assert.equal(tx.gas, numberToRpcQuantity(123));
     });
 
     it("Should wrap with an auto gas provider if undefined is used", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
       });
 
-      await provider.request({
-        method: "eth_sendTransaction",
-        params: [{ from: "0x0" }],
-      });
+      await provider.send("eth_sendTransaction", [{ from: "0x0" }]);
       const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
       assert.equal(
         tx.gas,
@@ -189,15 +181,12 @@ describe("Base providers wrapping", () => {
     });
 
     it("Should use the gasMultiplier", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
         gasMultiplier: OTHER_GAS_MULTIPLIER,
       });
 
-      await provider.request({
-        method: "eth_sendTransaction",
-        params: [{ from: "0x0" }],
-      });
+      await provider.send("eth_sendTransaction", [{ from: "0x0" }]);
       const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
       assert.equal(
         tx.gas,
@@ -206,15 +195,12 @@ describe("Base providers wrapping", () => {
     });
 
     it("Should wrap with a fixed gas provider if a number is used", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
         gas: 678,
       });
 
-      await provider.request({
-        method: "eth_sendTransaction",
-        params: [{ from: "0x0" }],
-      });
+      await provider.send("eth_sendTransaction", [{ from: "0x0" }]);
       const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
       assert.equal(tx.gas, numberToRpcQuantity(678));
     });
@@ -226,31 +212,31 @@ describe("Base providers wrapping", () => {
     });
 
     it("Should wrap with an auto gas price provider if 'auto' is used", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
         gasPrice: "auto",
       });
 
-      const gasPrice = await provider.request({ method: "eth_gasPrice" });
+      const gasPrice = await provider.send("eth_gasPrice");
       assert.equal(gasPrice, numberToRpcQuantity(123));
     });
 
     it("Should wrap with an auto gas price provider if undefined is used", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
       });
 
-      const gasPrice = await provider.request({ method: "eth_gasPrice" });
+      const gasPrice = await provider.send("eth_gasPrice");
       assert.equal(gasPrice, numberToRpcQuantity(123));
     });
 
     it("Should wrap with a fixed gas price provider if a number is used", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
         gasPrice: 789,
       });
 
-      await provider.request({ method: "eth_sendTransaction", params: [{}] });
+      await provider.send("eth_sendTransaction", [{}]);
       const [{ gasPrice }] = mockedProvider.getLatestParams(
         "eth_sendTransaction"
       );
@@ -261,13 +247,13 @@ describe("Base providers wrapping", () => {
 
   describe("Chain ID wrapping", () => {
     it("Should wrap with a chain id validation provider if a chainId is used", async () => {
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
         chainId: 2,
       });
 
       await expectBuidlerErrorAsync(
-        () => provider.request({ method: "eth_getAccounts", params: [] }),
+        () => provider.send("eth_getAccounts", []),
         ERRORS.NETWORK.INVALID_GLOBAL_CHAIN_ID
       );
     });
@@ -284,16 +270,13 @@ describe("Base providers wrapping", () => {
         "EthereumJS TestRPC/v2.5.5/ethereum-js"
       );
 
-      const provider = applyProviderWrappers(mockedProvider, {
+      const provider = wrapEthereumProvider(mockedProvider, {
         url: "",
       });
 
-      const estimation = (await provider.request({
-        method: "eth_estimateGas",
-        params: [
-          { to: "0xa2b6816c50d49101901d93f5302a3a57e0a1281b", value: 1 },
-        ],
-      })) as string;
+      const estimation = await provider.send("eth_estimateGas", [
+        { to: "0xa2b6816c50d49101901d93f5302a3a57e0a1281b", value: 1 },
+      ]);
 
       const gas = rpcQuantityToNumber(estimation);
       assert.equal(gas, Math.floor(123 * GANACHE_GAS_MULTIPLIER));

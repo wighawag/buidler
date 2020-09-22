@@ -1,12 +1,8 @@
 import { EventEmitter } from "events";
 
-import {
-  EIP1193Provider,
-  IEthereumProvider,
-  RequestArguments,
-} from "../../../../src/types";
+import { IEthereumProvider } from "../../../../src/types";
 
-export class MockedProvider extends EventEmitter implements EIP1193Provider {
+export class MockedProvider extends EventEmitter implements IEthereumProvider {
   private _returnValues: any = {};
   private _latestParams: any = {};
   private _numberOfCalls: { [call: string]: number } = {};
@@ -32,10 +28,7 @@ export class MockedProvider extends EventEmitter implements EIP1193Provider {
     return Object.values(this._numberOfCalls).reduce((p, c) => p + c, 0);
   }
 
-  public async request({
-    method,
-    params = [],
-  }: RequestArguments): Promise<any> {
+  public async send(method: string, params?: any[]): Promise<any> {
     this._latestParams[method] = params;
 
     if (this._numberOfCalls[method] === undefined) {

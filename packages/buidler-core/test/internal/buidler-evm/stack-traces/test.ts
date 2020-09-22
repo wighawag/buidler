@@ -101,8 +101,6 @@ interface DeployedContract {
   address: Buffer;
 }
 
-const TEST_TIMEOUT_MILLIS = 35000;
-
 function defineTest(
   dirPath: string,
   testDefinition: TestDefinition,
@@ -119,9 +117,7 @@ function defineTest(
     testDefinition.solc !== undefined &&
     !semver.satisfies(compilerOptions.solidityVersion, testDefinition.solc);
 
-  const func = async function (this: Mocha.Context) {
-    this.timeout(TEST_TIMEOUT_MILLIS);
-
+  const func = async function () {
     await runTest(dirPath, testDefinition, sources, {
       ...compilerOptions,
       runs,

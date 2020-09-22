@@ -15,5 +15,4 @@ module.exports = {
         "polar velvet stereo oval echo senior cause cruel tube hobby exact angry",
     },
   },
-  solidity: "0.5.15"
 };

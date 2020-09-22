@@ -6,6 +6,4 @@ extendConfig((config, userConfig) => {
   config.values.push(2);
 });
 
-module.exports = {
-  solidity: "0.5.15",
-};
+module.exports = {};

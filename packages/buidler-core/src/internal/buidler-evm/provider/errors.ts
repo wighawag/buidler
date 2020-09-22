@@ -15,11 +15,7 @@
 // -32002	Resource unavailable	Requested resource not available	  non-standard
 // -32003	Transaction rejected	Transaction creation failed	        non-standard
 
-import { ProviderRpcError } from "../../../types";
-import { CustomError } from "../../core/errors";
-
-export class BuidlerEVMProviderError extends CustomError
-  implements ProviderRpcError {
+export class BuidlerEVMProviderError extends Error {
   public static isBuidlerEVMProviderError(
     other: any
   ): other is BuidlerEVMProviderError {

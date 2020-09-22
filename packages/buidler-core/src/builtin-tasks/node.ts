@@ -37,6 +37,7 @@ function _createBuidlerEVMProvider(
     return createProvider(
       networkName,
       { loggingEnabled: true, ...networkConfig },
+      config.solc.version,
       config.paths
     );
   });
@@ -113,7 +114,11 @@ export default function () {
           console.log();
 
           try {
-            await watchCompilerOutput(server.getProvider(), config.paths);
+            await watchCompilerOutput(
+              server.getProvider(),
+              config.solc,
+              config.paths
+            );
           } catch (error) {
             console.warn(
               chalk.yellow(

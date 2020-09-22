@@ -2,27 +2,27 @@ import { assert } from "chai";
 
 import { DEFAULT_GAS_MULTIPLIER } from "../../../../../buidler-truffle5/src/constants";
 import {
-  AutomaticGasPriceProvider,
-  AutomaticGasProvider,
-  FixedGasPriceProvider,
-  FixedGasProvider,
+  createAutomaticGasPriceProvider,
+  createAutomaticGasProvider,
+  createFixedGasPriceProvider,
+  createFixedGasProvider,
+  createGanacheGasMultiplierProvider,
   GANACHE_GAS_MULTIPLIER,
-  GanacheGasMultiplierProvider,
 } from "../../../../src/internal/core/providers/gas-providers";
 import {
   numberToRpcQuantity,
   rpcQuantityToNumber,
 } from "../../../../src/internal/core/providers/provider-utils";
-import { EIP1193Provider } from "../../../../src/types";
+import { IEthereumProvider } from "../../../../src/types";
 
 import { MockedProvider } from "./mocks";
 
-describe("AutomaticGasProvider", () => {
+describe("createAutomaticGasProvider", () => {
   const FIXED_GAS_LIMIT = 1231;
   const GAS_MULTIPLIER = 1.337;
 
   let mockedProvider: MockedProvider;
-  let provider: EIP1193Provider;
+  let provider: IEthereumProvider;
 
   beforeEach(() => {
     mockedProvider = new MockedProvider();
@@ -34,20 +34,17 @@ describe("AutomaticGasProvider", () => {
       numberToRpcQuantity(FIXED_GAS_LIMIT)
     );
 
-    provider = new AutomaticGasProvider(mockedProvider, GAS_MULTIPLIER);
+    provider = createAutomaticGasProvider(mockedProvider, GAS_MULTIPLIER);
   });
 
   it("Should estimate gas automatically if not present", async () => {
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
 
@@ -56,18 +53,15 @@ describe("AutomaticGasProvider", () => {
 
   it("Should support different gas multipliers", async () => {
     const GAS_MULTIPLIER2 = 123;
-    provider = new AutomaticGasProvider(mockedProvider, GAS_MULTIPLIER2);
+    provider = createAutomaticGasProvider(mockedProvider, GAS_MULTIPLIER2);
 
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
 
@@ -75,18 +69,15 @@ describe("AutomaticGasProvider", () => {
   });
 
   it("Should have a default multiplier", async () => {
-    provider = new AutomaticGasProvider(mockedProvider);
+    provider = createAutomaticGasProvider(mockedProvider);
 
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
 
@@ -97,17 +88,14 @@ describe("AutomaticGasProvider", () => {
   });
 
   it("Shouldn't replace the provided gas", async () => {
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-          gas: 567,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+        gas: 567,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
 
@@ -116,16 +104,16 @@ describe("AutomaticGasProvider", () => {
 
   it("Should forward the other calls", async () => {
     const input = [1, 2, 3];
-    await provider.request({ method: "A", params: input });
+    await provider.send("A", input);
 
     const params = mockedProvider.getLatestParams("A");
     assert.deepEqual(params, input);
   });
 });
 
-describe("AutomaticGasPriceProvider", () => {
+describe("createAutomaticGasPriceProvider", () => {
   const FIXED_GAS_PRICE = 1232;
-  let provider: EIP1193Provider;
+  let provider: IEthereumProvider;
   let mockedProvider: MockedProvider;
 
   beforeEach(() => {
@@ -134,37 +122,31 @@ describe("AutomaticGasPriceProvider", () => {
       "eth_gasPrice",
       numberToRpcQuantity(FIXED_GAS_PRICE)
     );
-    provider = new AutomaticGasPriceProvider(mockedProvider);
+    provider = createAutomaticGasPriceProvider(mockedProvider);
   });
 
   it("Should obtain the gas price automatically if not present", async () => {
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
     assert.equal(tx.gasPrice, FIXED_GAS_PRICE);
   });
 
   it("Shouldn't replace the provided gasPrice", async () => {
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-          gasPrice: 456,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+        gasPrice: 456,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
     assert.equal(tx.gasPrice, 456);
@@ -172,17 +154,17 @@ describe("AutomaticGasPriceProvider", () => {
 
   it("Should forward the other calls", async () => {
     const input = [1, 2, 3, 4];
-    await provider.request({ method: "A", params: input });
+    await provider.send("A", input);
 
     const params = mockedProvider.getLatestParams("A");
     assert.deepEqual(params, input);
   });
 });
 
-describe("FixedGasProvider", () => {
+describe("createFixedGasProvider", () => {
   const FIXED_GAS_LIMIT = 1233;
   let mockedProvider: MockedProvider;
-  let provider: EIP1193Provider;
+  let provider: IEthereumProvider;
 
   const MOCKED_GAS_ESTIMATION_VALUE = {};
 
@@ -192,128 +174,113 @@ describe("FixedGasProvider", () => {
       "eth_estimateGas",
       MOCKED_GAS_ESTIMATION_VALUE
     );
-    provider = new FixedGasProvider(mockedProvider, FIXED_GAS_LIMIT);
+    provider = createFixedGasProvider(mockedProvider, FIXED_GAS_LIMIT);
   });
 
   it("Should set the fixed gas if not present", async () => {
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
     assert.equal(tx.gas, FIXED_GAS_LIMIT);
   });
 
   it("Shouldn't replace the provided gas", async () => {
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-          gas: 1456,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+        gas: 1456,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
     assert.equal(tx.gas, 1456);
   });
 
   it("Should forward direct calls to eth_estimateGas", async () => {
-    const estimated = await provider.request({
-      method: "eth_estimateGas",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-          gas: 1456123,
-        },
-      ],
-    });
+    const estimated = await provider.send("eth_estimateGas", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+        gas: 1456123,
+      },
+    ]);
 
     assert.equal(estimated, MOCKED_GAS_ESTIMATION_VALUE);
   });
 
   it("Should forward the other calls", async () => {
     const input = [1, 2, 3, 4, 5];
-    await provider.request({ method: "A", params: input });
+    await provider.send("A", input);
 
     const params = mockedProvider.getLatestParams("A");
     assert.deepEqual(params, input);
   });
 });
 
-describe("FixedGasPriceProvider", () => {
+describe("createFixedGasPriceProvider", () => {
   const FIXED_GAS_PRICE = 1234;
   let mockedProvider: MockedProvider;
-  let provider: EIP1193Provider;
+  let provider: IEthereumProvider;
 
   const MOCKED_GAS_PRICE_VALUE = {};
   beforeEach(() => {
     mockedProvider = new MockedProvider();
     mockedProvider.setReturnValue("eth_gasPrice", MOCKED_GAS_PRICE_VALUE);
-    provider = new FixedGasPriceProvider(mockedProvider, FIXED_GAS_PRICE);
+    provider = createFixedGasPriceProvider(mockedProvider, FIXED_GAS_PRICE);
   });
 
   it("Should set the fixed gasPrice if not present", async () => {
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
     assert.equal(tx.gasPrice, FIXED_GAS_PRICE);
   });
 
   it("Shouldn't replace the provided gasPrice", async () => {
-    await provider.request({
-      method: "eth_sendTransaction",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-          gasPrice: 14567,
-        },
-      ],
-    });
+    await provider.send("eth_sendTransaction", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+        gasPrice: 14567,
+      },
+    ]);
 
     const [tx] = mockedProvider.getLatestParams("eth_sendTransaction");
     assert.equal(tx.gasPrice, 14567);
   });
 
   it("Should forward direct calls to eth_gasPrice", async () => {
-    const price = await provider.request({ method: "eth_gasPrice" });
+    const price = await provider.send("eth_gasPrice");
 
     assert.equal(price, MOCKED_GAS_PRICE_VALUE);
   });
 
   it("Should forward the other calls", async () => {
     const input = [1, 2, 3, 4, 5, 6];
-    await provider.request({ method: "A", params: input });
+    await provider.send("A", input);
 
     const params = mockedProvider.getLatestParams("A");
     assert.deepEqual(params, input);
   });
 });
 
-describe("GanacheGasMultiplierProvider", () => {
+describe("createGanacheGasMultiplierProvider", () => {
   it("Should multiply the gas if connected to Ganache", async () => {
     const mockedProvider = new MockedProvider();
     mockedProvider.setReturnValue("eth_estimateGas", numberToRpcQuantity(123));
@@ -325,18 +292,15 @@ describe("GanacheGasMultiplierProvider", () => {
       gasLimit: numberToRpcQuantity(12300000),
     });
 
-    const wrapped = new GanacheGasMultiplierProvider(mockedProvider);
+    const wrapped = createGanacheGasMultiplierProvider(mockedProvider);
 
-    const estimation = (await wrapped.request({
-      method: "eth_estimateGas",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-        },
-      ],
-    })) as string;
+    const estimation = await wrapped.send("eth_estimateGas", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+      },
+    ]);
 
     const gas = rpcQuantityToNumber(estimation);
     assert.equal(gas, Math.floor(123 * GANACHE_GAS_MULTIPLIER));
@@ -352,18 +316,15 @@ describe("GanacheGasMultiplierProvider", () => {
     mockedProvider.setReturnValue("eth_getBlockByNumber", {
       gasLimit: numberToRpcQuantity(12300000),
     });
-    const wrapped = new GanacheGasMultiplierProvider(mockedProvider);
+    const wrapped = createGanacheGasMultiplierProvider(mockedProvider);
 
-    const estimation = (await wrapped.request({
-      method: "eth_estimateGas",
-      params: [
-        {
-          from: "0x0000000000000000000000000000000000000011",
-          to: "0x0000000000000000000000000000000000000011",
-          value: 1,
-        },
-      ],
-    })) as string;
+    const estimation = await wrapped.send("eth_estimateGas", [
+      {
+        from: "0x0000000000000000000000000000000000000011",
+        to: "0x0000000000000000000000000000000000000011",
+        value: 1,
+      },
+    ]);
 
     const gas = rpcQuantityToNumber(estimation);
     assert.equal(gas, 123);

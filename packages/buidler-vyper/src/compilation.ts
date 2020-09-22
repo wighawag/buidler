@@ -9,8 +9,8 @@ import {
   ProcessResult,
 } from "@nomiclabs/buidler-docker";
 import {
-  Artifacts,
   NomicLabsBuidlerPluginError,
+  saveArtifact,
 } from "@nomiclabs/buidler/plugins";
 import { ProjectPaths } from "@nomiclabs/buidler/types";
 import fsExtra from "fs-extra";
@@ -22,8 +22,6 @@ const VYPER_DOCKER_REPOSITORY = "ethereum/vyper";
 const LAST_VYPER_VERSION_USED_FILENAME = "last-vyper-version-used.txt";
 const VYPER_DOCKER_IMAGES_LAST_UPDATE_CHECK_FILE = "vyper-docker-updates.json";
 const CHECK_UPDATES_INTERVAL = 3600000;
-
-const ARTIFACT_FORMAT_VERSION = "hh-vyper-artifact-1";
 
 export async function compile(vyperConfig: VyperConfig, paths: ProjectPaths) {
   const vyperVersion = vyperConfig.version;
@@ -68,13 +66,7 @@ export async function compile(vyperConfig: VyperConfig, paths: ProjectPaths) {
       const artifact = getArtifactFromVyperOutput(file, vyperOutput);
 
       await fsExtra.ensureDir(paths.artifacts);
-
-      // TODO this might not work on windows, maybe we should use `slash` here
-      const globalName = path.relative(paths.sources, file);
-
-      // TODO-HH what should we do instead of this empty string?
-      const artifacts = new Artifacts(paths.artifacts);
-      await artifacts.saveArtifactFiles(globalName, artifact, "");
+      await saveArtifact(paths.artifacts, artifact);
     } else {
       console.error(processResult.stderr.toString("utf8").trim(), "\n");
 
@@ -119,7 +111,7 @@ async function isAlreadyCompiled(
 }
 
 async function getVyperSources(paths: ProjectPaths) {
-  const glob = await import("glob");
+  const glob = require("glob");
   const vyFiles = glob.sync(path.join(paths.sources, "**", "*.vy"));
   const vpyFiles = glob.sync(path.join(paths.sources, "**", "*.v.py"));
 
@@ -135,7 +127,6 @@ function getArtifactFromVyperOutput(sourceFile: string, output: any) {
   const contractName = pathToContractName(sourceFile);
 
   return {
-    _format: ARTIFACT_FORMAT_VERSION,
     contractName,
     abi: output.abi,
     bytecode: add0xPrefixIfNecessary(output.bytecode),
