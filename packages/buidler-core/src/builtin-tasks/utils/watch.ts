@@ -3,32 +3,54 @@ import debug from "debug";
 import fsExtra from "fs-extra";
 import * as path from "path";
 
-import { BUILD_INFO_DIR_NAME } from "../../internal/constants";
+import {
+  SOLC_INPUT_FILENAME,
+  SOLC_OUTPUT_FILENAME,
+} from "../../internal/constants";
 import { Reporter } from "../../internal/sentry/reporter";
-import { EIP1193Provider, ProjectPaths } from "../../types";
+import { EthereumProvider, ProjectPaths, SolcConfig } from "../../types";
 
 const log = debug("buidler:core:compilation-watcher");
 
 export async function watchCompilerOutput(
-  provider: EIP1193Provider,
+  provider: EthereumProvider,
+  solcConfig: SolcConfig,
   paths: ProjectPaths
 ) {
   const chokidar = await import("chokidar");
 
-  const buildInfoDir = path.join(paths.artifacts, BUILD_INFO_DIR_NAME);
+  const compilerVersion = solcConfig.version;
+  const solcInputPath = path.join(paths.cache, SOLC_INPUT_FILENAME);
+  const solcOutputPath = path.join(paths.cache, SOLC_OUTPUT_FILENAME);
 
-  const addCompilationResult = async (buildInfo: string) => {
+  const addCompilationResult = async () => {
+    if (
+      !(await fsExtra.pathExists(path.join(paths.cache, SOLC_INPUT_FILENAME)))
+    ) {
+      return false;
+    }
+
+    if (
+      !(await fsExtra.pathExists(path.join(paths.cache, SOLC_OUTPUT_FILENAME)))
+    ) {
+      return false;
+    }
+
     try {
       log("Adding new compilation result to the node");
 
-      const { input, output, solcVersion } = await fsExtra.readJSON(buildInfo, {
+      const compilerInput = await fsExtra.readJSON(solcInputPath, {
+        encoding: "utf8",
+      });
+      const compilerOutput = await fsExtra.readJSON(solcOutputPath, {
         encoding: "utf8",
       });
 
-      await provider.request({
-        method: "buidler_addCompilationResult",
-        params: [solcVersion, input, output],
-      });
+      await provider.send("buidler_addCompilationResult", [
+        compilerVersion,
+        compilerInput,
+        compilerOutput,
+      ]);
     } catch (error) {
       console.warn(
         chalk.yellow(
@@ -45,15 +67,16 @@ export async function watchCompilerOutput(
     }
   };
 
-  log(`Watching changes on '${buildInfoDir}'`);
+  log(`Watching changes on '${solcOutputPath}'`);
 
   chokidar
-    .watch(buildInfoDir, {
+    .watch(solcOutputPath, {
       ignoreInitial: true,
       awaitWriteFinish: {
         stabilityThreshold: 250,
         pollInterval: 50,
       },
     })
-    .on("add", addCompilationResult);
+    .on("add", addCompilationResult)
+    .on("change", addCompilationResult);
 }

@@ -40,19 +40,13 @@ describe("Environment", () => {
       sources: "",
       tests: "",
     },
-    solidity: {
-      compilers: [
-        {
-          version: "0.5.0",
-          settings: {
-            evmVersion: "byzantium",
-            optimizer: {
-              enabled: false,
-              runs: 0,
-            },
-          },
-        },
-      ],
+    solc: {
+      version: "0.5.0",
+      optimizer: {
+        enabled: false,
+        runs: 0,
+      },
+      evmVersion: "byzantium",
     },
     mocha: {},
     analytics: { enabled: true },
@@ -298,7 +292,7 @@ describe("Environment", () => {
       dsl.task(
         "with-subtask",
         "description",
-        async ({}, { run, config: theConfig, network }, runSuper: any) => {
+        async ({}, { run, config: theConfig, network }, runSuper) => {
           const globalAsAny = global as any;
           assert.equal(globalAsAny.config, theConfig);
           assert.isDefined(globalAsAny.config);

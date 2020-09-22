@@ -53,9 +53,3 @@ export interface CompilerOutputBytecode {
     [key: string]: Array<{ start: number; length: number }>;
   };
 }
-
-export interface BuildInfo {
-  input: CompilerInput;
-  output: any;
-  solcVersion: string;
-}

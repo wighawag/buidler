@@ -1,3 +1,3 @@
-if (global.config === undefined || global.config.solidity === undefined) {
+if (global.config === undefined || global.config.solc === undefined) {
   process.exit(123123);
 }

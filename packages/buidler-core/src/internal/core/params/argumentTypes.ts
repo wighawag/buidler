@@ -1,16 +1,47 @@
 import * as fs from "fs";
 import fsExtra from "fs-extra";
 
-import { ArgumentType, CLIArgumentType } from "../../../types";
 import { BuidlerError } from "../errors";
 import { ERRORS } from "../errors-list";
+
+/**
+ * Provides an interface for every valid task argument type.
+ */
+export interface ArgumentType<T> {
+  /**
+   * Type's name.
+   */
+  name: string;
+
+  /**
+   * Parses strValue. This function MUST throw BDLR301 if it
+   * can parse the given value.
+   *
+   * @param argName argument's name - used for context in case of error.
+   * @param strValue argument's string value to be parsed.
+   *
+   * @throws BDLR301 if an invalid value is given.
+   * @returns the parsed value.
+   */
+  parse(argName: string, strValue: string): T;
+
+  /**
+   * Check if argument value is of type <T>. Optional method.
+   *
+   * @param argName {string} argument's name - used for context in case of error.
+   * @param argumentValue - value to be validated
+   *
+   * @throws BDLR301 if value is not of type <t>
+   */
+  validate?(argName: string, argumentValue: any): void;
+}
 
 /**
  * String type.
  *
  * Accepts any kind of string.
  */
-export const string: CLIArgumentType<string> = {
+export const string: ArgumentType<string> = {
   name: "string",
   parse: (argName, strValue) => strValue,
   /**
@@ -40,7 +71,7 @@ export const string: CLIArgumentType<string> = {
  * Accepts only 'true' or 'false' (case-insensitive).
  * @throws BDLR301
  */
-export const boolean: CLIArgumentType<boolean> = {
+export const boolean: ArgumentType<boolean> = {
   name: "boolean",
   parse: (argName, strValue) => {
     if (strValue.toLowerCase() === "true") {
@@ -82,7 +113,7 @@ export const boolean: CLIArgumentType<boolean> = {
  * Accepts either a decimal string integer or hexadecimal string integer.
  * @throws BDLR301
  */
-export const int: CLIArgumentType<number> = {
+export const int: ArgumentType<number> = {
   name: "int",
   parse: (argName, strValue) => {
     const decimalPattern = /^\d+(?:[eE]\d+)?$/;
@@ -126,7 +157,7 @@ export const int: CLIArgumentType<number> = {
  * Accepts either a decimal string number or hexadecimal string number.
  * @throws BDLR301
  */
-export const float: CLIArgumentType<number> = {
+export const float: ArgumentType<number> = {
   name: "float",
   parse: (argName, strValue) => {
     const decimalPattern = /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE]\d+)?$/;
@@ -172,7 +203,7 @@ export const float: CLIArgumentType<number> = {
  * Accepts a path to a readable file..
  * @throws BDLR302
  */
-export const inputFile: CLIArgumentType<string> = {
+export const inputFile: ArgumentType<string> = {
   name: "inputFile",
   parse(argName: string, strValue: string): string {
     try {
@@ -224,7 +255,7 @@ export const inputFile: CLIArgumentType<string> = {
   },
 };
 
-export const json: CLIArgumentType<any> = {
+export const json: ArgumentType<any> = {
   name: "json",
   parse(argName: string, strValue: string): any {
     try {
@@ -240,7 +271,6 @@ export const json: CLIArgumentType<any> = {
       );
     }
   },
-
   /**
    * Check if argument value is of type "json". We consider everything except
    * undefined to be json.
@@ -259,9 +289,4 @@ export const json: CLIArgumentType<any> = {
       });
     }
   },
-};
-
-export const any: ArgumentType<any> = {
-  name: "any",
-  validate(argName: string, argumentValue: any) {},
 };

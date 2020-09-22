@@ -4,7 +4,6 @@ import { BN } from "ethereumjs-util";
 import { JsonRpcServer } from "../../../../src/internal/buidler-evm/jsonrpc/server";
 import { BuidlerNode } from "../../../../src/internal/buidler-evm/provider/node";
 import { BuidlerEVMProvider } from "../../../../src/internal/buidler-evm/provider/provider";
-import { BackwardsCompatibilityProviderAdapter } from "../../../../src/internal/core/providers/backwards-compatibility";
 import { EthereumProvider } from "../../../../src/types";
 
 declare module "mocha" {
@@ -77,11 +76,12 @@ export function useProvider(
       networkId,
       blockGasLimit,
       accounts,
+      undefined,
       allowUnlimitedContractSize
     );
 
     this.common = common;
-    const buidlerEvmProvider = new BuidlerEVMProvider(
+    this.provider = new BuidlerEVMProvider(
       hardfork,
       networkName,
       chainId,
@@ -92,11 +92,8 @@ export function useProvider(
       accounts,
       undefined,
       undefined,
+      undefined,
       allowUnlimitedContractSize
-    );
-
-    this.provider = new BackwardsCompatibilityProviderAdapter(
-      buidlerEvmProvider
     );
 
     if (useJsonRpc) {
@@ -108,9 +105,7 @@ export function useProvider(
 
       await this.server.listen();
 
-      this.provider = new BackwardsCompatibilityProviderAdapter(
-        this.server.getProvider()
-      );
+      this.provider = this.server.getProvider();
     }
   });
 

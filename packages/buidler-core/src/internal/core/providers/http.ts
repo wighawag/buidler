@@ -1,6 +1,5 @@
 import { EventEmitter } from "events";
 
-import { EIP1193Provider, RequestArguments } from "../../../types";
 import {
   FailedJsonRpcResponse,
   JsonRpcRequest,
@@ -10,13 +9,16 @@ import {
 import { BuidlerError } from "../errors";
 import { ERRORS } from "../errors-list";
 
-import { ProviderError } from "./errors";
+interface ProviderError extends Error {
+  code?: number;
+  data?: any;
+}
 
 function isErrorResponse(response: any): response is FailedJsonRpcResponse {
   return typeof response.error !== "undefined";
 }
 
-export class HttpProvider extends EventEmitter implements EIP1193Provider {
+export class HttpProvider extends EventEmitter {
   private _nextRequestId = 1;
 
   constructor(
@@ -28,15 +30,12 @@ export class HttpProvider extends EventEmitter implements EIP1193Provider {
     super();
   }
 
-  public async request(args: RequestArguments): Promise<unknown> {
+  public async send(method: string, params?: any[]): Promise<any> {
     // We create the error here to capture the stack traces at this point,
     // the async call that follows would probably loose of the stack trace
-    const error = new ProviderError("HttpProviderError", -1);
+    const error: ProviderError = new Error();
 
-    const jsonRpcRequest = this._getJsonRpcRequest(
-      args.method,
-      args.params as any[]
-    );
+    const jsonRpcRequest = this._getJsonRpcRequest(method, params);
     const jsonRpcResponse = await this._fetchJsonRpcResponse(jsonRpcRequest);
 
     if (isErrorResponse(jsonRpcResponse)) {

@@ -139,17 +139,18 @@ const ProjectPaths = t.type({
   tests: optional(t.string),
 });
 
-const SingleSolcConfig = t.type({
-  version: t.string,
-  settings: optional(t.any),
+const EVMVersion = t.string;
+
+const SolcOptimizerConfig = t.type({
+  enabled: optional(t.boolean),
+  runs: optional(t.number),
 });
 
-const MultiSolcConfig = t.type({
-  compilers: t.array(SingleSolcConfig),
-  overrides: optional(t.record(t.string, SingleSolcConfig)),
+const SolcConfig = t.type({
+  version: optional(t.string),
+  optimizer: optional(SolcOptimizerConfig),
+  evmVersion: optional(EVMVersion),
 });
-
-const SolidityConfig = t.union([t.string, SingleSolcConfig, MultiSolcConfig]);
 
 const AnalyticsConfig = t.type({
   enabled: optional(t.boolean),
@@ -160,7 +161,7 @@ const BuidlerConfig = t.type(
     defaultNetwork: optional(t.string),
     networks: optional(Networks),
     paths: optional(ProjectPaths),
-    solidity: optional(SolidityConfig),
+    solc: optional(SolcConfig),
     analytics: optional(AnalyticsConfig),
   },
   "BuidlerConfig"

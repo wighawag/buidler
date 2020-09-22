@@ -5,7 +5,7 @@ import { ErrorDescriptor, ERRORS, getErrorCode } from "./errors-list";
 
 const inspect = Symbol.for("nodejs.util.inspect.custom");
 
-export class CustomError extends Error {
+class CustomError extends Error {
   constructor(message: string, public readonly parent?: Error) {
     // WARNING: Using super when extending a builtin class doesn't work well
     // with TS if you are compiling to a version of JavaScript that doesn't have
@@ -51,25 +51,14 @@ export class BuidlerError extends CustomError {
     );
   }
 
-  public static isBuidlerErrorType(
-    other: any,
-    descriptor: ErrorDescriptor
-  ): other is BuidlerError {
-    return (
-      BuidlerError.isBuidlerError(other) &&
-      other.errorDescriptor.number === descriptor.number
-    );
-  }
-
   public readonly errorDescriptor: ErrorDescriptor;
   public readonly number: number;
-  public readonly messageArguments: Record<string, any>;
 
   private readonly _isBuidlerError: boolean;
 
   constructor(
     errorDescriptor: ErrorDescriptor,
-    messageArguments: Record<string, any> = {},
+    messageArguments: { [p: string]: any } = {},
     parentError?: Error
   ) {
     const prefix = `${getErrorCode(errorDescriptor)}: `;
@@ -83,7 +72,6 @@ export class BuidlerError extends CustomError {
 
     this.errorDescriptor = errorDescriptor;
     this.number = errorDescriptor.number;
-    this.messageArguments = messageArguments;
 
     this._isBuidlerError = true;
     Object.setPrototypeOf(this, BuidlerError.prototype);
@@ -254,13 +242,4 @@ function _applyErrorMessageTemplate(
   }
 
   return template;
-}
-
-export function assertBuidlerInvariant(
-  invariant: boolean,
-  message: string
-): asserts invariant {
-  if (!invariant) {
-    throw new BuidlerError(ERRORS.GENERAL.ASSERTION_ERROR, { message });
-  }
 }

@@ -1,7 +1,5 @@
 import {
   ActionType,
-  ArgumentType,
-  CLIArgumentType,
   ParamDefinition,
   ParamDefinitionsMap,
   TaskArguments,
@@ -12,11 +10,6 @@ import { ErrorDescriptor, ERRORS } from "../errors-list";
 import * as types from "../params/argumentTypes";
 import { BUIDLER_PARAM_DEFINITIONS } from "../params/buidler-params";
 
-function isCLIArgumentType(
-  type: ArgumentType<any>
-): type is CLIArgumentType<any> {
-  return "parse" in type;
-}
 /**
  * This class creates a task definition, which consists of:
  * * a name, that should be unique and will be used to call the task.
@@ -95,7 +88,7 @@ export class SimpleTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T,
-    type?: ArgumentType<T>,
+    type?: types.ArgumentType<T>,
     isOptional: boolean = defaultValue !== undefined
   ): this {
     if (type === undefined) {
@@ -135,7 +128,6 @@ export class SimpleTaskDefinition implements TaskDefinition {
       isOptional,
       name
     );
-    this._validateCLIArgumentTypesForExternalTasks(type);
 
     this.paramDefinitions[name] = {
       name,
@@ -164,7 +156,7 @@ export class SimpleTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T,
-    type?: ArgumentType<T>
+    type?: types.ArgumentType<T>
   ): this {
     return this.addParam(name, description, defaultValue, type, true);
   }
@@ -215,7 +207,7 @@ export class SimpleTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T,
-    type?: ArgumentType<T>,
+    type?: types.ArgumentType<T>,
     isOptional = defaultValue !== undefined
   ): this {
     if (type === undefined) {
@@ -257,7 +249,6 @@ export class SimpleTaskDefinition implements TaskDefinition {
       isOptional,
       name
     );
-    this._validateCLIArgumentTypesForExternalTasks(type);
 
     const definition = {
       name,
@@ -288,7 +279,7 @@ export class SimpleTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T,
-    type?: ArgumentType<T>
+    type?: types.ArgumentType<T>
   ): this {
     return this.addPositionalParam(name, description, defaultValue, type, true);
   }
@@ -307,7 +298,7 @@ export class SimpleTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T[] | T,
-    type?: ArgumentType<T>,
+    type?: types.ArgumentType<T>,
     isOptional = defaultValue !== undefined
   ): this {
     if (defaultValue !== undefined && !Array.isArray(defaultValue)) {
@@ -353,7 +344,6 @@ export class SimpleTaskDefinition implements TaskDefinition {
       isOptional,
       name
     );
-    this._validateCLIArgumentTypesForExternalTasks(type);
 
     const definition = {
       name,
@@ -385,7 +375,7 @@ export class SimpleTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T[] | T,
-    type?: ArgumentType<T>
+    type?: types.ArgumentType<T>
   ): this {
     return this.addVariadicPositionalParam(
       name,
@@ -521,22 +511,6 @@ export class SimpleTaskDefinition implements TaskDefinition {
   private _isStringArray(values: any): values is string[] {
     return Array.isArray(values) && values.every((v) => typeof v === "string");
   }
-
-  private _validateCLIArgumentTypesForExternalTasks(type: ArgumentType<any>) {
-    if (this.isInternal) {
-      return;
-    }
-
-    if (!isCLIArgumentType(type)) {
-      throw new BuidlerError(
-        ERRORS.TASK_DEFINITIONS.CLI_ARGUMENT_TYPE_REQUIRED,
-        {
-          task: this.name,
-          type: type.name,
-        }
-      );
-    }
-  }
 }
 
 /**
@@ -627,7 +601,7 @@ export class OverriddenTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T,
-    type?: ArgumentType<T>,
+    type?: types.ArgumentType<T>,
     isOptional?: boolean
   ): this {
     if (isOptional === undefined || !isOptional) {
@@ -645,7 +619,7 @@ export class OverriddenTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T,
-    type?: ArgumentType<T>
+    type?: types.ArgumentType<T>
   ): this {
     this.parentTaskDefinition.addOptionalParam(
       name,
@@ -663,7 +637,7 @@ export class OverriddenTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T,
-    type?: ArgumentType<T>,
+    type?: types.ArgumentType<T>,
     isOptional?: boolean
   ): this {
     return this._throwNoParamsOverrideError(
@@ -678,7 +652,7 @@ export class OverriddenTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T,
-    type?: ArgumentType<T>
+    type?: types.ArgumentType<T>
   ): this {
     return this._throwNoParamsOverrideError(
       ERRORS.TASK_DEFINITIONS.OVERRIDE_NO_POSITIONAL_PARAMS
@@ -692,7 +666,7 @@ export class OverriddenTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T[],
-    type?: ArgumentType<T>,
+    type?: types.ArgumentType<T>,
     isOptional?: boolean
   ): this {
     return this._throwNoParamsOverrideError(
@@ -707,7 +681,7 @@ export class OverriddenTaskDefinition implements TaskDefinition {
     name: string,
     description?: string,
     defaultValue?: T[],
-    type?: ArgumentType<T>
+    type?: types.ArgumentType<T>
   ): this {
     return this._throwNoParamsOverrideError(
       ERRORS.TASK_DEFINITIONS.OVERRIDE_NO_VARIADIC_PARAMS

@@ -1,4 +1,5 @@
 import { bufferToHex } from "ethereumjs-util";
+import { inspect } from "util";
 
 import { decodeRevertReason } from "./revert-reasons";
 import {
@@ -12,8 +13,6 @@ import {
   UNRECOGNIZED_CONTRACT_NAME,
   UNRECOGNIZED_FUNCTION_NAME,
 } from "./solidity-stack-trace";
-
-const inspect = Symbol.for("nodejs.util.inspect.custom");
 
 export function getCurrentStack(): NodeJS.CallSite[] {
   const previousPrepareStackTrace = Error.prepareStackTrace;
@@ -287,7 +286,7 @@ export class SolidityError extends Error {
     this.stackTrace = stackTrace;
   }
 
-  public [inspect](): string {
+  public [inspect.custom](): string {
     return this.inspect();
   }
 

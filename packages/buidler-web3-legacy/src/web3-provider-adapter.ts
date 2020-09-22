@@ -20,6 +20,10 @@ export interface JsonRpcResponse {
   };
 }
 
+export interface JsonRpcError extends Error {
+  code?: string;
+}
+
 export class Web3HTTPProviderAdapter {
   private readonly _provider: IEthereumProvider;
 

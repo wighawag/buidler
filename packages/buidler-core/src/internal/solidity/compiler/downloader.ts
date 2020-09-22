@@ -40,13 +40,19 @@ async function downloadFile(
 
 export class CompilerDownloader {
   private readonly _compilersDir: string;
+  private readonly _localSolcVersion: string;
   private readonly _download: (
     url: string,
     destinationFile: string
   ) => Promise<void>;
 
-  constructor(readonly compilersDir: string, readonly download = downloadFile) {
+  constructor(
+    readonly compilersDir: string,
+    readonly localSolcVersion: string,
+    readonly download = downloadFile
+  ) {
     this._compilersDir = compilersDir;
+    this._localSolcVersion = localSolcVersion;
     this._download = download;
   }
 
@@ -109,7 +115,13 @@ export class CompilerDownloader {
     try {
       await this._download(COMPILERS_LIST_URL, this.getCompilersListPath());
     } catch (error) {
-      throw new BuidlerError(ERRORS.SOLC.VERSION_LIST_DOWNLOAD_FAILED, error);
+      throw new BuidlerError(
+        ERRORS.SOLC.VERSION_LIST_DOWNLOAD_FAILED,
+        {
+          localVersion: this._localSolcVersion,
+        },
+        error
+      );
     }
   }
 
@@ -128,6 +140,7 @@ export class CompilerDownloader {
         ERRORS.SOLC.DOWNLOAD_FAILED,
         {
           remoteVersion: compilerBuild.version,
+          localVersion: this._localSolcVersion,
         },
         error
       );
@@ -152,6 +165,7 @@ export class CompilerDownloader {
 
       throw new BuidlerError(ERRORS.SOLC.INVALID_DOWNLOAD, {
         remoteVersion: compilerBuild.version,
+        localVersion: this._localSolcVersion,
       });
     }
   }

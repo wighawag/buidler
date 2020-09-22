@@ -18,25 +18,25 @@ describe("Config validation", function () {
     });
   });
 
-  describe("Solidity config", function () {
-    const invalidSolidityType = {
-      solidity: 123,
+  describe("Solc config", function () {
+    const invalidSolcType = {
+      solc: 123,
     };
 
     const invalidVersionType = {
-      solidity: {
+      solc: {
         version: 123,
       },
     };
 
     const invalidOptimizerType = {
-      solidity: {
+      solc: {
         optimizer: 123,
       },
     };
 
     const invalidOptimizerEnabledType = {
-      solidity: {
+      solc: {
         optimizer: {
           enabled: 123,
         },
@@ -44,7 +44,7 @@ describe("Config validation", function () {
     };
 
     const invalidOptimizerRunsType = {
-      solidity: {
+      solc: {
         optimizer: {
           runs: "",
         },
@@ -52,14 +52,14 @@ describe("Config validation", function () {
     };
 
     const invalidEvmVersionType = {
-      solidity: {
+      solc: {
         evmVersion: 123,
       },
     };
 
     it("Should fail with invalid types", function () {
       expectBuidlerError(
-        () => validateConfig(invalidSolidityType),
+        () => validateConfig(invalidSolcType),
         ERRORS.GENERAL.INVALID_CONFIG
       );
 

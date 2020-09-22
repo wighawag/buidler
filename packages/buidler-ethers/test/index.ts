@@ -1,4 +1,4 @@
-import { Artifacts } from "@nomiclabs/buidler/plugins";
+import { readArtifact } from "@nomiclabs/buidler/plugins";
 import { Artifact } from "@nomiclabs/buidler/types";
 import { assert } from "chai";
 import { ethers } from "ethers";
@@ -36,11 +36,15 @@ describe("Ethers plugin", function () {
 
     beforeEach(async function () {
       signers = await this.env.ethers.getSigners();
-      await this.env.run("compile");
-      const artifacts = new Artifacts(this.env.config.paths.artifacts);
-      greeterArtifact = await artifacts.readArtifact("Greeter");
+      greeterArtifact = await readArtifact(
+        this.env.config.paths.artifacts,
+        "Greeter"
+      );
 
-      iGreeterArtifact = await artifacts.readArtifact("IGreeter");
+      iGreeterArtifact = await readArtifact(
+        this.env.config.paths.artifacts,
+        "IGreeter"
+      );
     });
 
     describe("getSigners", function () {

@@ -1,6 +1,6 @@
 import {
-  Artifacts,
   NomicLabsBuidlerPluginError,
+  readArtifactSync,
 } from "@nomiclabs/buidler/plugins";
 import path from "path";
 
@@ -8,7 +8,7 @@ import { LazyTruffleContractProvisioner } from "./provisioner";
 import { TruffleContract, TruffleContractInstance } from "./types";
 
 export class TruffleEnvironmentArtifacts {
-  private readonly _artifacts: Artifacts;
+  private readonly _artifactsPath: string;
   private readonly _provisioner: LazyTruffleContractProvisioner;
 
   constructor(
@@ -16,7 +16,7 @@ export class TruffleEnvironmentArtifacts {
     provisioner: LazyTruffleContractProvisioner
   ) {
     this._provisioner = provisioner;
-    this._artifacts = new Artifacts(artifactsPath);
+    this._artifactsPath = artifactsPath;
   }
 
   public require(contractPath: string): any {
@@ -70,7 +70,8 @@ export class TruffleEnvironmentArtifacts {
       }
     }
 
-    const destinationArtifact = this._artifacts.readArtifactSync(
+    const destinationArtifact = readArtifactSync(
+      this._artifactsPath,
       destination.contractName
     );
 
@@ -182,7 +183,7 @@ export class TruffleEnvironmentArtifacts {
   }
 
   private _getTruffleContract(contractName: string): TruffleContract {
-    const artifact = this._artifacts.readArtifactSync(contractName);
+    const artifact = readArtifactSync(this._artifactsPath, contractName);
 
     // Solc 0.6 doesn't set `costant: true` in the ABI elements, so we add it
     // here if necessary
