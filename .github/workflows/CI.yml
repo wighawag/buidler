@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - development
+      - 2.0
   pull_request:
     branches:
       - "*"
@@ -24,17 +25,20 @@ jobs:
           path: |
             node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node-10-${{ hashFiles('package-lock.json') }}-${{ hashFiles('packages/*/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-10-
+            packages/hardhat-core/test/internal/hardhat-network/stack-traces/compilers
+          key: ${{ runner.os }}-node-10-${{ hashFiles('yarn.lock') }}
       - name: Install node-gyp-cache
         run: |
-          npm install -g node-gyp-cache
-          npm config set node_gyp node-gyp-cache
+          yarn global add node-gyp-cache
+          yarn config set node_gyp node-gyp-cache
       - name: Install
-        run: npm install
+        run: yarn --frozen-lockfile
+      - name: Clean
+        run: yarn clean
+      - name: Build
+        run: yarn build
       - name: lint
-        run: npm run lint
+        run: yarn lint
       - name: Check dependency versions
         run: node scripts/check-dependencies.js
 
@@ -52,17 +56,18 @@ jobs:
           path: |
             node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node-10-${{ hashFiles('package-lock.json') }}-${{ hashFiles('packages/*/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-10-
+            packages/hardhat-core/test/internal/hardhat-network/stack-traces/compilers
+          key: ${{ runner.os }}-node-10-${{ hashFiles('yarn.lock') }}}
       - name: Install node-gyp-cache
         run: |
-          npm install -g node-gyp-cache
-          npm config set node_gyp node-gyp-cache
+          yarn global add node-gyp-cache
+          yarn config set node_gyp node-gyp-cache
       - name: Install
-        run: npm install
+        run: yarn --frozen-lockfile
+      - name: Clean
+        run: yarn clean
       - name: Build tests
-        run: npm run build-test
+        run: yarn build-test
 
   test_windows:
     name: Test on Windows with Node 10
@@ -73,9 +78,12 @@ jobs:
           node-version: 10
       - uses: actions/checkout@v2
       - name: Install
-        run: npm install
+        run: yarn --frozen-lockfile
       - name: Run tests
-        run: npm run test
+        env:
+          INFURA_URL: ${{ secrets.INFURA_URL }}
+          ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
+        run: yarn test
 
   test_macos:
     name: Test on MacOS with Node 10
@@ -91,17 +99,21 @@ jobs:
           path: |
             node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node-10-${{ hashFiles('package-lock.json') }}-${{ hashFiles('packages/*/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-10-
+            packages/hardhat-core/test/internal/hardhat-network/stack-traces/compilers
+          key: ${{ runner.os }}-node-10-${{ hashFiles('yarn.lock') }}}
       - name: Install node-gyp-cache
         run: |
-          npm install -g node-gyp-cache
-          npm config set node_gyp node-gyp-cache
+          yarn global add node-gyp-cache
+          yarn config set node_gyp node-gyp-cache
       - name: Install
-        run: npm install
+        run: yarn --frozen-lockfile
+      - name: Clean
+        run: yarn clean
       - name: Run tests
-        run: npm run test
+        env:
+          INFURA_URL: ${{ secrets.INFURA_URL }}
+          ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
+        run: yarn test
 
   test_linux:
     name: Test on Linux with Node ${{ matrix.node }}
@@ -122,14 +134,18 @@ jobs:
           path: |
             node_modules
             packages/*/node_modules
-          key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('packages/*/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-${{ matrix.node }}-
+            packages/hardhat-core/test/internal/hardhat-network/stack-traces/compilers
+          key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('yarn.lock') }}}
       - name: Install node-gyp-cache
         run: |
-          npm install -g node-gyp-cache
-          npm config set node_gyp node-gyp-cache
+          yarn global add node-gyp-cache
+          yarn config set node_gyp node-gyp-cache
       - name: Install
-        run: npm install
+        run: yarn --frozen-lockfile
+      - name: Clean
+        run: yarn clean
       - name: Run tests
-        run: npm run test
+        env:
+          INFURA_URL: ${{ secrets.INFURA_URL }}
+          ALCHEMY_URL: ${{ secrets.ALCHEMY_URL }}
+        run: yarn test
